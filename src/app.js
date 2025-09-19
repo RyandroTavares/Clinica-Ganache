@@ -134,22 +134,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (err) {
             mensagemCadastro.style.color = "red";
 
-            // Tenta extrair a mensagem do revert do Solidity
             let msg = "";
             if (err?.data) {
-                // Web3 coloca erros em err.data[txHash].reason
                 const keys = Object.keys(err.data);
                 if (keys.length > 0 && err.data[keys[0]].reason) {
                     msg = err.data[keys[0]].reason;
                 }
             }
             if (!msg && err.message) {
-                // fallback, pode conter "revert ..."
                 const match = err.message.match(/revert (.*)/);
                 if (match) msg = match[1];
             }
 
-            // Agora exibe mensagens amigáveis
+            // Exibe mensagens amigáveis
             if (msg.includes("Paciente deve ter mais de 12 anos")) {
                 mensagemCadastro.innerHTML = "Erro ao cadastrar paciente: Paciente deve ter mais de 12 anos";
             } else if (msg.includes("CPF digitado errado ou ja cadastrado")) {

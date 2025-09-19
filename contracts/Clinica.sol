@@ -23,7 +23,7 @@ contract Clinica {
         string memory _enderecoPaciente
     ) public {
 
-        string memory cpfTrimmed = _cpf; // Opcional: você pode aplicar mais normalização se quiser
+        string memory cpfTrimmed = _cpf;
 
         require(bytes(_nome).length > 0, "Nome obrigatorio");
         require(bytes(cpfTrimmed).length > 0, "CPF obrigatorio");
