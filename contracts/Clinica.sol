@@ -28,7 +28,7 @@ contract Clinica {
         require(bytes(_nome).length > 0, "Nome obrigatorio");
         require(bytes(cpfTrimmed).length > 0, "CPF obrigatorio");
         require(_idade > 12, "Paciente deve ter mais de 12 anos");
-        require(!pacientes[cpfTrimmed].existe, "Paciente com esse CPF ja cadastrado");
+        require(!pacientes[cpfTrimmed].existe, "CPF digitado errado ou ja cadastrado");
 
         pacientes[cpfTrimmed] = Paciente({
             nome: _nome,
