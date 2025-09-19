@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Clínica - Cadastro de Pacientes (Ganache)</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+</head>
+<body>
+    <h1>Cadastro de Pacientes</h1>
+
+    <h2>Cadastrar Paciente</h2>
+    <form id="cadastrarForm">
+        <label>Nome: <input type="text" id="nome"></label><br>
+        <label>CPF: <input type="text" id="cpf"></label><br>
+        <label>Idade: <input type="number" id="idade"></label><br>
+        <label>Endereço: <input type="text" id="endereco"></label><br>
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <h2>Consultar Paciente</h2>
+    <form id="consultarForm">
+        <label>CPF: <input type="text" id="cpfConsulta"></label>
+        <button type="submit">Consultar</button>
+    </form>
+    <div id="resultadoConsulta"></div>
+
+    <h2>Pacientes Cadastrados</h2>
+    <ul id="listaPacientes"></ul>
+
+    <script>
+        // Conecta direto ao Ganache
+        const web3 = new Web3('http://127.0.0.1:7545');
+
+        // Endereço do contrato
+        const contratoAddress = "0x9c52c3898C2718E9396703FB1DA2D398189035e7";
+
+        // ABI do contrato
+        const contratoABI = [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "cpf",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "nome",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "idade",
+          "type": "uint256"
+        }
+      ],
+      "name": "PacienteCadastrado",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_nome",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_cpf",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_idade",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "_enderecoPaciente",
+          "type": "string"
+        }
+      ],
+      "name": "cadastrarPaciente",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_cpf",
+          "type": "string"
+        }
+      ],
+      "name": "obterPaciente",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "nome",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "idade",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "enderecoPaciente",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
+    },
+    {
+      "inputs": [],
+      "name": "listarCPFs",
+      "outputs": [
+        {
+          "internalType": "string[]",
+          "name": "",
+          "type": "string[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
+    }
+  ];
+
+        const contrato = new web3.eth.Contract(contratoABI, contratoAddress);
+
+        // Conta do Ganache
+        const privateKey = "8f42eac2754307bb36d0618ecfb02e1f4d59f87a6ba27526420e544ea78b4cdd";
+        const account = web3.eth.accounts.privateKeyToAccount("0x" + privateKey);
+        web3.eth.accounts.wallet.add(account);
+        web3.eth.defaultAccount = account.address;
+
+        // Função para normalizar CPF (opcional)
+        function normalizeCPF(cpf) {
+            return cpf.replace(/\D/g,''); // remove tudo que não é número
+        }
+
+        // Cadastro de paciente
+        document.getElementById('cadastrarForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('nome').value;
+            const cpf = normalizeCPF(document.getElementById('cpf').value);
+            const idade = parseInt(document.getElementById('idade').value);
+            const endereco = document.getElementById('endereco').value;
+
+            try {
+                await contrato.methods.cadastrarPaciente(nome, cpf, idade, endereco)
+                    .send({ from: account.address, gas: 3000000 });
+                alert("Paciente cadastrado com sucesso!");
+                listarPacientes();
+            } catch (err) {
+                alert("Erro: " + err.message);
+            }
+        };
+
+        // Consulta de paciente
+        document.getElementById('consultarForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const cpf = normalizeCPF(document.getElementById('cpfConsulta').value);
+            try {
+                const paciente = await contrato.methods.obterPaciente(cpf).call();
+                document.getElementById('resultadoConsulta').innerHTML =
+                    `Nome: ${paciente.nome}<br>Idade: ${paciente.idade}<br>Endereço: ${paciente.enderecoPaciente}`;
+            } catch (err) {
+                document.getElementById('resultadoConsulta').innerHTML = "Paciente não encontrado";
+            }
+        };
+
+        // Listar todos os pacientes
+        async function listarPacientes() {
+            const cpfs = await contrato.methods.listarCPFs().call();
+            const lista = document.getElementById('listaPacientes');
+            lista.innerHTML = "";
+            for (const cpf of cpfs) {
+                const paciente = await contrato.methods.obterPaciente(cpf).call();
+                const li = document.createElement('li');
+                li.innerHTML = `${paciente.nome} - CPF: ${cpf} - Idade: ${paciente.idade} - Endereço: ${paciente.enderecoPaciente}`;
+                lista.appendChild(li);
+            }
+        }
+
+        // Carrega a lista ao abrir a página
+        listarPacientes();
+    </script>
+</body>
+</html>
